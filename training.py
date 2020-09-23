@@ -4,6 +4,25 @@ import random
 import time
 from network import ClassificationNetwork
 from imitations import load_imitations
+import torchvision.transforms as transforms
+
+
+def bbc(frames):
+    cpu = torch.device('cpu')
+    gpu = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    result = []
+    for x in frames:
+        reshape = transforms.Compose([
+            transforms.ToPILImage(),
+            # transforms.CenterCrop((122, 122)),
+            transforms.Grayscale(),
+            transforms.ToTensor(),
+            transforms.Normalize([0.4161, ], [0.1688, ]),
+        ])(x.to(cpu).permute(2, 0, 1))
+        result.append(reshape.permute(1, 2, 0))
+    result = torch.reshape(torch.cat(result, dim=0),(-1, 96, 96, 1)).to(gpu)
+
+    return result
 
 
 def train(data_folder, trained_network_file):
@@ -11,19 +30,21 @@ def train(data_folder, trained_network_file):
     Function for training the network.
     """
     infer_action = ClassificationNetwork()
-    optimizer = torch.optim.Adam(infer_action.parameters(), lr=1e-2)
+    optimizer = torch.optim.Adam(infer_action.parameters(), lr=2e-3)
     observations, actions = load_imitations(data_folder)
     observations = [torch.Tensor(observation) for observation in observations]
     actions = [torch.Tensor(action) for action in actions]
 
     batches = [batch for batch in zip(observations,
                                       infer_action.actions_to_classes(actions))]
-    gpu = torch.device('cpu')
+    gpu = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    
 
     nr_epochs = 100
     batch_size = 64
     number_of_classes = infer_action.num_classes  # needs to be changed
     start_time = time.time()
+    prev_loss = 100000
 
     for epoch in range(nr_epochs):
         random.shuffle(batches)
@@ -36,9 +57,9 @@ def train(data_folder, trained_network_file):
             batch_gt.append(batch[1].to(gpu))
 
             if (batch_idx + 1) % batch_size == 0 or batch_idx == len(batches) - 1:
-                #batch_in = torch.tentorchvision.transforms.Grayscale(batch_in)
-                batch_in = torch.reshape(torch.cat(batch_in, dim=0),
-                                         (-1, 96, 96, 3))
+                #batch_in = torchvision.transforms.Grayscale(batch_in)
+                batch_in = bbc(batch_in)
+                #batch_in = torch.reshape(torch.cat(batch_in, dim=0),(-1, 96, 96, 1))
 
                 batch_gt = torch.reshape(torch.cat(batch_gt, dim=0),
                                          (-1, number_of_classes))
@@ -58,8 +79,10 @@ def train(data_folder, trained_network_file):
         time_left = (1.0 * time_per_epoch) * (nr_epochs - 1 - epoch)
         print("Epoch %5d\t[Train]\tloss: %.6f \tETA: +%fs" % (
             epoch + 1, total_loss, time_left))
-
-    torch.save(infer_action, trained_network_file)
+        if total_loss<prev_loss:
+            prev_loss = total_loss
+            torch.save(infer_action, trained_network_file)
+            print('saved_model')
 
 
 def cross_entropy_loss(batch_out, batch_gt):
@@ -70,9 +93,21 @@ def cross_entropy_loss(batch_out, batch_gt):
     batch_gt:       torch.Tensor of size (batch_size, number_of_classes)
     return          float
     """
+    """
     # Define loss function
     loss = torch.nn.CrossEntropyLoss()
     # Compute labels
-    labels = batch_gt.argmax(dim=1)
+    _, labels = batch_gt.max(dim=1)
     # Compute loss function
-    return loss(batch_out, labels)
+    out = loss(batch_out, labels)
+    #print(out)
+    return out
+    """
+    #_, batch_gt = batch_gt.max(dim=1)
+    epsilon = 0.0001
+    loss = batch_gt * torch.log(batch_out + epsilon) + \
+           (1 - batch_gt) * torch.log(1 - batch_out + epsilon)
+    loss = -torch.mean(torch.sum(loss, dim=1), dim=0)
+    
+    return loss
+

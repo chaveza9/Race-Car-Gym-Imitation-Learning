@@ -43,7 +43,11 @@ def save_imitations(data_folder, actions, observations):
     observations:   python list of N numpy.ndarrays of size (96, 96, 3)
     actions:        python list of N numpy.ndarrays of size 3
     """
-    pass
+    action_name = data_folder + '/action_'
+    observations_name = data_folder + '/observation_'
+    for indx in range(len(actions)):
+        np.save(action_name + str(indx+1), actions[indx])
+        np.save(observations_name + str(indx+1), observations[indx])
 
 
 class ControlStatus:

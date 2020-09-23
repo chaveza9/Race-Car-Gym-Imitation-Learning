@@ -3,13 +3,15 @@ import sys
 import numpy as np
 import torch
 import gym
+import torch.nn.functional as F
 
 from training import train
+from training import bbc
 from imitations import record_imitations
 
 directory = "./"  ######## change that! ########
 trained_network_file = os.path.join(directory, 'data/train.t7')
-imitations_folder = os.path.join(directory, 'data/teacher')
+imitations_folder = os.path.join(directory, 'data/teacher2')
 
 
 def evaluate():
@@ -19,19 +21,17 @@ def evaluate():
     infer_action.eval()
     env = gym.make('CarRacing-v0')
     # you can set it to torch.device('cuda') in case you have a gpu
-    device = torch.device('cpu')
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     infer_action = infer_action.to(device)
-
 
     for episode in range(5):
         observation = env.reset()
-
         reward_per_episode = 0
         for t in range(500):
             env.render()
-            action_scores = infer_action(torch.Tensor(
-                np.ascontiguousarray(observation[None])).to(device))
-
+            obs = bbc(torch.Tensor(np.ascontiguousarray(observation[None])).to(device))
+            action_scores = infer_action(obs)
+            #action_scores = F.softmax(action_scores, dim=1)
             steer, gas, brake = infer_action.scores_to_action(action_scores)
             observation, reward, done, info = env.step([steer, gas, brake])
             reward_per_episode += reward
@@ -48,8 +48,9 @@ def calculate_score_for_leaderboard():
     infer_action = torch.load(trained_network_file, map_location='cpu')
     infer_action.eval()
     env = gym.make('CarRacing-v0')
+    env.step()
     # you can set it to torch.device('cuda') in case you have a gpu
-    device = torch.device('cpu')
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     seeds = [22597174, 68545857, 75568192, 91140053, 86018367,
              49636746, 66759182, 91294619, 84274995, 31531469]

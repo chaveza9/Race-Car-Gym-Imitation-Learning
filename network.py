@@ -15,7 +15,8 @@ class ClassificationNetwork(nn.Module):
         observations is 96x96 pixels.
         """
         super(ClassificationNetwork, self).__init__()
-        gpu = torch.device('cuda')
+        gpu = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.gpu = gpu
         # Structure to define possible classes
         self.actions_classes = np.array([
             [0.0, 0.0, 0.0],  # STRAIGHT
@@ -34,22 +35,33 @@ class ClassificationNetwork(nn.Module):
         # 1 input image channel, 6 output channels, 3x3 square convolution
         # kernel
         self.layer1 = nn.Sequential(
-            nn.Conv2d(3, 16, kernel_size=5, stride=1, padding=2),  # RGB input case
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=4))  # 24x24 image size
+            nn.Conv2d(in_channels=1, out_channels=2, kernel_size=3, stride=1),  # RGB input case
+            nn.LeakyReLU(negative_slope=0.2),
+            #nn.MaxPool2d(kernel_size=2) # 48x48 image size
+        ).to(gpu)
         self.layer2 = nn.Sequential(
-            nn.Conv2d(16, 32, kernel_size=3, stride=1, padding=2),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2))  # 12x12 image size
-        self.dropout = nn.Dropout(p=0.5)
+            nn.Conv2d(2, 4, kernel_size=3, stride=2),
+            nn.LeakyReLU(negative_slope=0.2),
+            #nn.MaxPool2d(kernel_size=2, stride=2) # 12x12 image size
+        ).to(gpu)
+        self.layer3 = nn.Sequential(
+            nn.Conv2d(4, 8, kernel_size=3, stride=2),
+            nn.LeakyReLU(negative_slope=0.2),
+            # nn.MaxPool2d(kernel_size=2, stride=2) # 12x12 image size
+        ).to(gpu)
+        self.dropout = nn.Dropout(p=0.2).to(gpu)
         self.fc1 = nn.Sequential(
-            nn.Linear(5408, 128),   #12 * 12 * 3 * 32
-            nn.ReLU()
-        )
+            nn.Linear(in_features=8*22*22, out_features=64),   #12 * 12 * 3 * 32
+            nn.LeakyReLU(negative_slope=0.2)
+        ).to(gpu)
         self.fc2 = nn.Sequential(
-            nn.Linear(128, self.num_classes),
-
-        )
+            nn.Linear(in_features=64, out_features=32),  # 12 * 12 * 3 * 32
+            nn.LeakyReLU(negative_slope=0.2)
+        ).to(gpu)
+        self.fc3 = nn.Sequential(
+            nn.Linear(32, self.num_classes)
+        ).to(gpu)
+        self.softmax = nn.Softmax(dim=1).to(gpu)
 
     def forward(self, observation):
         """
@@ -60,14 +72,21 @@ class ClassificationNetwork(nn.Module):
         return         torch.Tensor of size (batch_size, number_of_classes)
         """
         # Define sequential forwarding model
-        out = self.layer1(observation.permute(0, 3, 2, 1))
+        out = self.layer1(observation.permute(0, 3, 1, 2))
         out = self.dropout(out)
         out = self.layer2(out)
+        out = self.layer3(out)
         #out = torch.flatten(out)
-        out = out.reshape(out.size(0), -1)
+        #out = out.reshape(out.size(0), -1)
+        out = out.reshape(-1, 8*22*22)
         out = self.dropout(out)
         out = self.fc1(out)
         out = self.fc2(out)
+        out = self.fc3(out)
+
+
+        out = self.softmax(out)
+
         return out
 
     def actions_to_classes(self, actions):
@@ -91,6 +110,7 @@ class ClassificationNetwork(nn.Module):
                                         np.array(action), axis=1))
             if len(action_id[0]) == 0:
                 action_id = 0
+                print("action not recognized")
             else:
                 action_id = action_id[0][0]
             # Create one-hot encoding
@@ -101,28 +121,6 @@ class ClassificationNetwork(nn.Module):
 
         return class_labels
 
-    def __check_invalid_actions__(self, action):
-        """
-        Checks if there is any forbidden action in the expert dataset
-        actions:        python list of N torch.Tensors of size 3
-        returns:
-        Flag:           flag if invalid action detected
-        substitute_action    substitute to class action
-        """
-        invalid_actions = np.array([
-            [0.0, 0.5, 0.8],  # ACCEL_BRAKE
-            [1.0, 0.5, 0.8],  # RIGHT_ACCEL_BRAKE
-            [-1.0, 0.5, 0.8],  # LEFT_ACCEL_BRAKE
-            [1.0, 0.5, 0.0],  # RIGHT_ACCEL
-            [-1.0, 0.5, 0.0],  # LEFT_ACCEL
-        ])
-        inv_class = np.where(np.all(invalid_actions == np.array(action), axis=1))[0][0]
-
-        if len(inv_class) > 0:
-            flag = 1
-
-        return flag
-
     def scores_to_action(self, scores):
         """
         1.1 c)
@@ -131,16 +129,8 @@ class ClassificationNetwork(nn.Module):
         scores:         python list of torch.Tensors of size number_of_classes
         return          (float, float, float)
         """
-
-        label_indx = 0
         # Compute maximum score value
         _, predicted = torch.max(scores.data, 1)
-        # Retrieve class index
-        #loc = np.where(np.array(scores) == 1)
-        # Check if index has been located
-        #if len(loc[0]) > 0:
-        #    label_indx = loc[0][0]
-        # Return action map
         return self.actions_classes[predicted]
 
     def extract_sensor_values(self, observation, batch_size):
@@ -163,18 +153,3 @@ class ClassificationNetwork(nn.Module):
         gyroscope = gyro_crop.sum(dim=1, keepdim=True)
         return speed, abs_sensors.reshape(batch_size, 4), steering, gyroscope
 
-
-"""
-if __name__ == "__main__":
-    classification = ClassificationNetwork()
-
-    # Extract actions and observations
-    from imitations import load_imitations
-
-    observations, actions = load_imitations('./data/teacher')
-    actions = [torch.Tensor(action) for action in actions]
-
-    classes = classification.actions_to_classes(actions)
-
-    a = classification.scores_to_action(classes[0])
-"""
