@@ -1,4 +1,5 @@
 import torch
+import torch.nn as nn
 import torchvision
 import random
 import time
@@ -6,9 +7,6 @@ import utils
 from network import ClassificationNetwork
 from imitations import load_imitations
 import torchvision.transforms as transforms
-
-
-
 
 
 def train(data_folder, trained_network_file):
@@ -23,7 +21,7 @@ def train(data_folder, trained_network_file):
     actions = [torch.Tensor(action) for action in actions]
 
     batches = [batch for batch in zip(observations,
-                                      infer_action.actions_to_classes(actions))]
+                                      infer_action.action_to_multilabel(actions))]
 
     nr_epochs = 100
     batch_size = 64
@@ -42,16 +40,15 @@ def train(data_folder, trained_network_file):
             batch_gt.append(batch[1].to(device))
 
             if (batch_idx + 1) % batch_size == 0 or batch_idx == len(batches) - 1:
-                #batch_in = torchvision.transforms.Grayscale(batch_in)
                 batch_in = torch.reshape(torch.cat(batch_in, dim=0), (-1, 96, 96, 3))
                 sensor = utils.extract_sensor_values(batch_in, batch_size)
                 batch_in = utils.preprocess_image(batch_in)
-                batch_in = torch.reshape(torch.cat(batch_in, dim=0),(-1, 96, 96, 1))
+                batch_in = torch.reshape(torch.cat(batch_in, dim=0), (-1, 96, 96, 1))
                 batch_gt = torch.reshape(torch.cat(batch_gt, dim=0),
                                          (-1, number_of_classes))
 
                 batch_out = infer_action(batch_in, sensor)
-                loss = cross_entropy_loss(batch_out, batch_gt)
+                loss = binary_cross_entropy_loss(batch_out, batch_gt)
 
                 optimizer.zero_grad()
                 loss.backward()
@@ -89,11 +86,16 @@ def cross_entropy_loss(batch_out, batch_gt):
     #print(out)
     return out
     """
-    #_, batch_gt = batch_gt.max(dim=1)
+    # _, batch_gt = batch_gt.max(dim=1)
     epsilon = 0.0001
     loss = batch_gt * torch.log(batch_out + epsilon) + \
            (1 - batch_gt) * torch.log(1 - batch_out + epsilon)
     loss = -torch.mean(torch.sum(loss, dim=1), dim=0)
-    
+
     return loss
 
+def binary_cross_entropy_loss(batch_out, batch_in):
+
+    criterion = nn.BCEWithLogitsLoss()
+    loss = criterion(batch_out, batch_in)
+    return loss
