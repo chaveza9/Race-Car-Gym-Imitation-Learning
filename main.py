@@ -3,15 +3,15 @@ import sys
 import numpy as np
 import torch
 import gym
+import utils
 import torch.nn.functional as F
 
 from training import train
-from training import preprocess_image
 from imitations import record_imitations
 
 directory = "./"  ######## change that! ########
 trained_network_file = os.path.join(directory, 'data/train.t7')
-imitations_folder = os.path.join(directory, 'data/teacher')
+imitations_folder = os.path.join(directory, 'data/teacher2')
 
 
 def evaluate():
@@ -29,9 +29,11 @@ def evaluate():
         reward_per_episode = 0
         for t in range(500):
             env.render()
-            obs = preprocess_image(torch.Tensor(np.ascontiguousarray(observation[None])).to(device))
+            obs = torch.Tensor(np.ascontiguousarray(observation[None])).to(device)
+            sensors = utils.extract_sensor_values(obs, 64)
+            obs = utils.preprocess_image(obs)
             obs = torch.reshape(torch.cat(obs, dim=0), (-1, 96, 96, 1)).to(device)
-            action_scores = infer_action(obs)
+            action_scores = infer_action(obs, sensors)
             #action_scores = F.softmax(action_scores, dim=1)
             steer, gas, brake = infer_action.scores_to_action(action_scores)
             observation, reward, done, info = env.step([steer, gas, brake])

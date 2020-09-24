@@ -2,32 +2,13 @@ import torch
 import torchvision
 import random
 import time
+import utils
 from network import ClassificationNetwork
 from imitations import load_imitations
 import torchvision.transforms as transforms
 
 
-def preprocess_image(frames):
-    """
-    Preprocess a list of tensor images frame by normalizing image, converting
-    into grayscale, and transforming into tensor
-    :param frames: pytorch tensor of size [batch, size, x,y,3] (RGB) image
-    :return: torch tensors of size [batch_size, x, y, 1]
-    """
-    cpu = torch.device('cpu')
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    result = []
-    for x in frames:
-        reshape = transforms.Compose([
-            transforms.ToPILImage(),
-            # transforms.CenterCrop((122, 122)),
-            transforms.Grayscale(),
-            transforms.ToTensor(),
-            transforms.Normalize([0.4161, ], [0.1688, ]),
-        ])(x.to(cpu).permute(2, 0, 1))
-        result.append(reshape.permute(1, 2, 0))
-    #result = torch.reshape(torch.cat(result, dim=0), (-1, 96, 96, 1)).to(device)
-    return result
+
 
 
 def train(data_folder, trained_network_file):
@@ -63,8 +44,8 @@ def train(data_folder, trained_network_file):
             if (batch_idx + 1) % batch_size == 0 or batch_idx == len(batches) - 1:
                 #batch_in = torchvision.transforms.Grayscale(batch_in)
                 batch_in = torch.reshape(torch.cat(batch_in, dim=0), (-1, 96, 96, 3))
-                sensor = infer_action.extract_sensor_values(batch_in, batch_size)
-                batch_in = preprocess_image(batch_in)
+                sensor = utils.extract_sensor_values(batch_in, batch_size)
+                batch_in = utils.preprocess_image(batch_in)
                 batch_in = torch.reshape(torch.cat(batch_in, dim=0),(-1, 96, 96, 1))
                 batch_gt = torch.reshape(torch.cat(batch_gt, dim=0),
                                          (-1, number_of_classes))
@@ -84,7 +65,7 @@ def train(data_folder, trained_network_file):
         time_left = (1.0 * time_per_epoch) * (nr_epochs - 1 - epoch)
         print("Epoch %5d\t[Train]\tloss: %.6f \tETA: +%fs" % (
             epoch + 1, total_loss, time_left))
-        if total_loss<prev_loss:
+        if total_loss < prev_loss:
             prev_loss = total_loss
             torch.save(infer_action, trained_network_file)
             print('saved_model')
