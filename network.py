@@ -28,7 +28,8 @@ class ClassificationNetwork(nn.Module):
             [1.0, 0.5, 0.0],  # RIGHT_ACCEL
             [-1.0, 0.5, 0.0]  # LEFT_ACCEL
         ], dtype=np.float32)
-        self.num_classes = self.actions_classes.shape[0]
+
+        self.num_classes = 4  # self.actions_classes.shape[0]
 
         # Model Definition
         # 1 input image channel, 6 output channels, 3x3 square convolution
@@ -87,7 +88,7 @@ class ClassificationNetwork(nn.Module):
         out = self.fc2(out)
         out = self.fc3(out)
 
-        out = self.softmax(out)
+        # out = self.softmax(out)
 
         return out
 
@@ -135,4 +136,32 @@ class ClassificationNetwork(nn.Module):
         _, predicted = torch.max(scores.data, 1)
         return self.actions_classes[predicted]
 
+    def action_to_multilabel(self, actions):
+        """
+        actions:        python list of N torch.Tensors of size 3
+        return          python list of N torch.Tensors of size number_of_classes
+        """
+        multilabel_class = []
+        for action in actions:
+            right_array = np.array(action > 0).astype(np.float32)
+            left_array = np.array(action[0] < 0).astype(np.float32)
+            multilabel_class.append(torch.tensor(np.append( \
+                left_array, right_array)))
 
+        return multilabel_class
+
+    def multilabel_to_action(self, scores: torch.tensor):
+        scores = torch.round(torch.sigmoid(scores)).detach().numpy()
+        #scores = scores.astype(bool)
+        action = np.zeros(3)
+        index = 1
+        if scores[0][0]:
+            action[0] = -1
+        if scores[0][1]:
+            action[0] = 1
+        if scores[0][2]:
+            action[1] = 0.5
+        if scores[0][3]:
+            action[2] = 0.8
+
+        return action
