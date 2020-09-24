@@ -7,9 +7,15 @@ from imitations import load_imitations
 import torchvision.transforms as transforms
 
 
-def bbc(frames):
+def preprocess_image(frames):
+    """
+    Preprocess a list of tensor images frame by normalizing image, converting
+    into grayscale, and transforming into tensor
+    :param frames: pytorch tensor of size [batch, size, x,y,3] (RGB) image
+    :return: torch tensors of size [batch_size, x, y, 1]
+    """
     cpu = torch.device('cpu')
-    gpu = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     result = []
     for x in frames:
         reshape = transforms.Compose([
@@ -20,8 +26,7 @@ def bbc(frames):
             transforms.Normalize([0.4161, ], [0.1688, ]),
         ])(x.to(cpu).permute(2, 0, 1))
         result.append(reshape.permute(1, 2, 0))
-    result = torch.reshape(torch.cat(result, dim=0),(-1, 96, 96, 1)).to(gpu)
-
+    #result = torch.reshape(torch.cat(result, dim=0), (-1, 96, 96, 1)).to(device)
     return result
 
 
@@ -29,7 +34,8 @@ def train(data_folder, trained_network_file):
     """
     Function for training the network.
     """
-    infer_action = ClassificationNetwork()
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    infer_action = ClassificationNetwork().to(device)
     optimizer = torch.optim.Adam(infer_action.parameters(), lr=2e-3)
     observations, actions = load_imitations(data_folder)
     observations = [torch.Tensor(observation) for observation in observations]
@@ -37,8 +43,6 @@ def train(data_folder, trained_network_file):
 
     batches = [batch for batch in zip(observations,
                                       infer_action.actions_to_classes(actions))]
-    gpu = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    
 
     nr_epochs = 100
     batch_size = 64
@@ -53,18 +57,19 @@ def train(data_folder, trained_network_file):
         batch_in = []
         batch_gt = []
         for batch_idx, batch in enumerate(batches):
-            batch_in.append(batch[0].to(gpu))
-            batch_gt.append(batch[1].to(gpu))
+            batch_in.append(batch[0].to(device))
+            batch_gt.append(batch[1].to(device))
 
             if (batch_idx + 1) % batch_size == 0 or batch_idx == len(batches) - 1:
                 #batch_in = torchvision.transforms.Grayscale(batch_in)
-                batch_in = bbc(batch_in)
-                #batch_in = torch.reshape(torch.cat(batch_in, dim=0),(-1, 96, 96, 1))
-
+                batch_in = torch.reshape(torch.cat(batch_in, dim=0), (-1, 96, 96, 3))
+                sensor = infer_action.extract_sensor_values(batch_in, batch_size)
+                batch_in = preprocess_image(batch_in)
+                batch_in = torch.reshape(torch.cat(batch_in, dim=0),(-1, 96, 96, 1))
                 batch_gt = torch.reshape(torch.cat(batch_gt, dim=0),
                                          (-1, number_of_classes))
 
-                batch_out = infer_action(batch_in)
+                batch_out = infer_action(batch_in, sensor)
                 loss = cross_entropy_loss(batch_out, batch_gt)
 
                 optimizer.zero_grad()

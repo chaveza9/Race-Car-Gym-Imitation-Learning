@@ -3,7 +3,6 @@ import numpy as np
 from torch import Tensor
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 
 class ClassificationNetwork(nn.Module):
@@ -15,8 +14,8 @@ class ClassificationNetwork(nn.Module):
         observations is 96x96 pixels.
         """
         super(ClassificationNetwork, self).__init__()
-        gpu = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.gpu = gpu
+        # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        # self.gpu = device
         # Structure to define possible classes
         self.actions_classes = np.array([
             [0.0, 0.0, 0.0],  # STRAIGHT
@@ -37,53 +36,56 @@ class ClassificationNetwork(nn.Module):
         self.layer1 = nn.Sequential(
             nn.Conv2d(in_channels=1, out_channels=2, kernel_size=3, stride=1),  # RGB input case
             nn.LeakyReLU(negative_slope=0.2),
-            #nn.MaxPool2d(kernel_size=2) # 48x48 image size
-        ).to(gpu)
+            # nn.MaxPool2d(kernel_size=2) # 48x48 image size
+        )
         self.layer2 = nn.Sequential(
             nn.Conv2d(2, 4, kernel_size=3, stride=2),
             nn.LeakyReLU(negative_slope=0.2),
-            #nn.MaxPool2d(kernel_size=2, stride=2) # 12x12 image size
-        ).to(gpu)
+            # nn.MaxPool2d(kernel_size=2, stride=2) # 12x12 image size
+        )
         self.layer3 = nn.Sequential(
             nn.Conv2d(4, 8, kernel_size=3, stride=2),
             nn.LeakyReLU(negative_slope=0.2),
             # nn.MaxPool2d(kernel_size=2, stride=2) # 12x12 image size
-        ).to(gpu)
-        self.dropout = nn.Dropout(p=0.2).to(gpu)
+        )
+        self.dropout = nn.Dropout(p=0.2)
         self.fc1 = nn.Sequential(
-            nn.Linear(in_features=8*22*22, out_features=64),   #12 * 12 * 3 * 32
+            nn.Linear(in_features=8 * 22 * 22 + 7, out_features=64),  # 12 * 12 * 3 * 32
             nn.LeakyReLU(negative_slope=0.2)
-        ).to(gpu)
+        )
         self.fc2 = nn.Sequential(
             nn.Linear(in_features=64, out_features=32),  # 12 * 12 * 3 * 32
             nn.LeakyReLU(negative_slope=0.2)
-        ).to(gpu)
+        )
         self.fc3 = nn.Sequential(
             nn.Linear(32, self.num_classes)
-        ).to(gpu)
-        self.softmax = nn.Softmax(dim=1).to(gpu)
+        )
+        self.softmax = nn.Softmax(dim=1)
 
-    def forward(self, observation):
+    def forward(self, observation, sensor_data):
         """
         1.1 e)
         The forward pass of the network. Returns the prediction for the given
-        input observation.
+        input
         observation:   torch.Tensor of size (batch_size, 96, 96, 3)
+        sensor_data:   tuple of size 4 containing 4 different types of sensor data
         return         torch.Tensor of size (batch_size, number_of_classes)
         """
+        # Unpack tuple data
+        speed, abs_sensors, steering, gyroscope = sensor_data
         # Define sequential forwarding model
         out = self.layer1(observation.permute(0, 3, 1, 2))
         out = self.dropout(out)
         out = self.layer2(out)
         out = self.layer3(out)
-        #out = torch.flatten(out)
-        #out = out.reshape(out.size(0), -1)
-        out = out.reshape(-1, 8*22*22)
+        # out = torch.flatten(out)
+        # out = out.reshape(out.size(0), -1)
+        out = out.reshape(-1, 8 * 22 * 22)
         out = self.dropout(out)
+        out = torch.cat((out, speed, abs_sensors, steering, gyroscope), 1)
         out = self.fc1(out)
         out = self.fc2(out)
         out = self.fc3(out)
-
 
         out = self.softmax(out)
 
@@ -143,6 +145,7 @@ class ClassificationNetwork(nn.Module):
                         torch.Tensors of size (batch_size, 1),
                         torch.Tensors of size (batch_size, 1)
         """
+        print(observation.shape)
         speed_crop = observation[:, 84:94, 12, 0].reshape(batch_size, -1)
         speed = speed_crop.sum(dim=1, keepdim=True) / 255
         abs_crop = observation[:, 84:94, 18:25:2, 2].reshape(batch_size, 10, 4)
@@ -152,4 +155,3 @@ class ClassificationNetwork(nn.Module):
         gyro_crop = observation[:, 88, 58:86, 0].reshape(batch_size, -1)
         gyroscope = gyro_crop.sum(dim=1, keepdim=True)
         return speed, abs_sensors.reshape(batch_size, 4), steering, gyroscope
-
