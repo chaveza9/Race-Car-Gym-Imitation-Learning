@@ -10,8 +10,8 @@ from training import train
 from imitations import record_imitations
 
 directory = "./"  ######## change that! ########
-trained_network_file = os.path.join(directory, 'data/train_best.t7')
-imitations_folder = os.path.join(directory, 'data/teacher3')
+trained_network_file = os.path.join(directory, 'data/train1.t7')
+imitations_folder = os.path.join(directory, 'data/teacher4')
 
 
 def evaluate():
