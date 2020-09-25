@@ -37,8 +37,9 @@ def evaluate():
             obs = torch.reshape(torch.cat(obs, dim=0), (-1, 96, 96, 1)).to(device)
             action_scores = infer_action(obs, sensors)
             #action_scores = F.softmax(action_scores, dim=1)
-            steer, gas, brake = infer_action.multilabel_to_action(action_scores)
-            observation, reward, done, info = env.step([steer, gas, brake])
+            #steer, gas, brake = action_scores
+            #observation, reward, done, info = env.step([steer, gas, brake])
+            observation, reward, done, info = env.step(action_scores.detach().numpy()[0,:])
             reward_per_episode += reward
 
         print('episode %d \t reward %f' % (episode, reward_per_episode))
@@ -71,7 +72,7 @@ def calculate_score_for_leaderboard():
             action_scores = infer_action(torch.Tensor(
                 np.ascontiguousarray(observation[None])).to(device))
 
-            steer, gas, brake = infer_action.multilabel_to_action(action_scores)
+            steer, gas, brake = action_scores
             observation, reward, done, info = env.step([steer, gas, brake])
             reward_per_episode += reward
 

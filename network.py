@@ -29,7 +29,7 @@ class ClassificationNetwork(nn.Module):
             [-1.0, 0.5, 0.0]  # LEFT_ACCEL
         ], dtype=np.float32)
 
-        self.num_classes = 4  # self.actions_classes.shape[0]
+        self.num_classes = 3 #4  # self.actions_classes.shape[0]
 
         # Model Definition
         # 1 input image channel, 6 output channels, 3x3 square convolution
@@ -165,3 +165,5 @@ class ClassificationNetwork(nn.Module):
             action[2] = 0.8
 
         return action
+
+

@@ -20,12 +20,11 @@ def train(data_folder, trained_network_file):
     observations = [torch.Tensor(observation) for observation in observations]
     actions = [torch.Tensor(action) for action in actions]
 
-    batches = [batch for batch in zip(observations,
-                                      infer_action.action_to_multilabel(actions))]
+    batches = [batch for batch in zip(observations, actions)]
 
     nr_epochs = 100
     batch_size = 64
-    number_of_classes = infer_action.num_classes  # needs to be changed
+    number_of_classes = 3#infer_action.num_classes  # needs to be changed
     start_time = time.time()
     prev_loss = 100000
 
@@ -48,7 +47,7 @@ def train(data_folder, trained_network_file):
                                          (-1, number_of_classes))
 
                 batch_out = infer_action(batch_in, sensor)
-                loss = binary_cross_entropy_loss(batch_out, batch_gt)
+                loss = mse_loss(batch_out, batch_gt)
 
                 optimizer.zero_grad()
                 loss.backward()
@@ -99,3 +98,8 @@ def binary_cross_entropy_loss(batch_out, batch_in):
     criterion = nn.BCEWithLogitsLoss()
     loss = criterion(batch_out, batch_in)
     return loss
+
+def mse_loss(batch_out, batch_in):
+    loss = nn.MSELoss()
+    return loss(batch_out, batch_in)
+
