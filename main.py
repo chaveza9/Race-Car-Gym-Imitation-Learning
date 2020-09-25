@@ -10,7 +10,7 @@ from training import train
 from imitations import record_imitations
 
 directory = "./"  ######## change that! ########
-trained_network_file = os.path.join(directory, 'data/train3.t7')
+trained_network_file = os.path.join(directory, 'data/train_best.t7')
 imitations_folder = os.path.join(directory, 'data/teacher3')
 
 
@@ -28,7 +28,7 @@ def evaluate():
         observation = env.reset()
         reward_per_episode = 0
         for t in range(500):
-            if t == 0:
+            if t <= 5:
                 # Accelerate car to start simulation
                 observation, reward, done, info = env.step([0, 0.6, 0])
             env.render()
