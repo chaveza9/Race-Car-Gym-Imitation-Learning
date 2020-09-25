@@ -3,7 +3,7 @@ import numpy as np
 from torch import Tensor
 import torch
 import torch.nn as nn
-
+import torch.nn.functional as F
 
 class ClassificationNetwork(nn.Module):
 
@@ -29,7 +29,7 @@ class ClassificationNetwork(nn.Module):
             [-1.0, 0.5, 0.0]  # LEFT_ACCEL
         ], dtype=np.float32)
 
-        self.num_classes = 4  # self.actions_classes.shape[0]
+        self.num_classes = self.actions_classes.shape[0]
 
         # Model Definition
         # 1 input image channel, 6 output channels, 3x3 square convolution
@@ -88,8 +88,6 @@ class ClassificationNetwork(nn.Module):
         out = self.fc2(out)
         out = self.fc3(out)
 
-        # out = self.softmax(out)
-
         return out
 
     def actions_to_classes(self, actions):
@@ -133,6 +131,7 @@ class ClassificationNetwork(nn.Module):
         return          (float, float, float)
         """
         # Compute maximum score value
+        scores = F.softmax(scores, dim=1)
         _, predicted = torch.max(scores.data, 1)
         return self.actions_classes[predicted]
 

@@ -48,3 +48,5 @@ def preprocess_image(frames):
         result.append(reshape.permute(1, 2, 0))
     # result = torch.reshape(torch.cat(result, dim=0), (-1, 96, 96, 1)).to(device)
     return result
+
+

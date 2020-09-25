@@ -10,8 +10,8 @@ from training import train
 from imitations import record_imitations
 
 directory = "./"  ######## change that! ########
-trained_network_file = os.path.join(directory, 'data/train.t7')
-imitations_folder = os.path.join(directory, 'data/teacher2')
+trained_network_file = os.path.join(directory, 'data/train3.t7')
+imitations_folder = os.path.join(directory, 'data/teacher3')
 
 
 def evaluate():
@@ -37,7 +37,6 @@ def evaluate():
             obs = utils.preprocess_image(obs)
             obs = torch.reshape(torch.cat(obs, dim=0), (-1, 96, 96, 1)).to(device)
             action_scores = infer_action(obs, sensors)
-            #action_scores = F.softmax(action_scores, dim=1)
             steer, gas, brake = infer_action.scores_to_action(action_scores)
             observation, reward, done, info = env.step([steer, gas, brake])
             reward_per_episode += reward

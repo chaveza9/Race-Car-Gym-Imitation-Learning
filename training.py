@@ -21,7 +21,7 @@ def train(data_folder, trained_network_file):
     actions = [torch.Tensor(action) for action in actions]
 
     batches = [batch for batch in zip(observations,
-                                      infer_action.action_to_multilabel(actions))]
+                                      infer_action.actions_to_classes(actions))]
 
     nr_epochs = 100
     batch_size = 64
@@ -48,7 +48,7 @@ def train(data_folder, trained_network_file):
                                          (-1, number_of_classes))
 
                 batch_out = infer_action(batch_in, sensor)
-                loss = binary_cross_entropy_loss(batch_out, batch_gt)
+                loss = cross_entropy_loss(batch_out, batch_gt)
 
                 optimizer.zero_grad()
                 loss.backward()
@@ -76,7 +76,6 @@ def cross_entropy_loss(batch_out, batch_gt):
     batch_gt:       torch.Tensor of size (batch_size, number_of_classes)
     return          float
     """
-    """
     # Define loss function
     loss = torch.nn.CrossEntropyLoss()
     # Compute labels
@@ -93,6 +92,7 @@ def cross_entropy_loss(batch_out, batch_gt):
     loss = -torch.mean(torch.sum(loss, dim=1), dim=0)
 
     return loss
+    """
 
 def binary_cross_entropy_loss(batch_out, batch_in):
 
