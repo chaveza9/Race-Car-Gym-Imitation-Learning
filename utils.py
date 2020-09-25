@@ -39,7 +39,6 @@ def preprocess_image(frames):
     :return: torch tensors of size [batch_size, x, y, 1]
     """
     cpu = torch.device('cpu')
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     result = []
     # Define Transformation
     transformation = transforms.Compose([
@@ -67,9 +66,9 @@ def mask_image(frame):
     """ Preprocess the images (states) of the expert dataset before feeding them to agent """
     if type(frame)== list:
         # Reshape list
-        frames = torch.reshape(torch.cat(frame, dim=0), (-1, 96, 96, 3))
+        frame = torch.reshape(torch.cat(frame, dim=0), (-1, 96, 96, 3))
 
-    new_frame = np.copy(frame)
+    new_frame = np.copy(frame.cpu())
 
     # Paint black over the sum of rewards metadata
     new_frame[:, 85:, :15] = [0.0, 0.0, 0.0]
