@@ -3,8 +3,8 @@ import torchvision.transforms as transforms
 import torch
 import numpy as np
 import PIL
-import imgaug as ia
-from imgaug import augmenters as iaa
+#import imgaug as ia
+#from imgaug import augmenters as iaa
 
 
 def extract_sensor_values(observation, batch_size):

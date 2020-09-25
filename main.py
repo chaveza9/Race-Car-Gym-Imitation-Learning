@@ -17,11 +17,12 @@ imitations_folder = os.path.join(directory, 'data/teacher3')
 def evaluate():
     """
     """
-    infer_action = torch.load(trained_network_file, map_location='cpu')
+    dev = "cuda" if torch.cuda.is_available() else "cpu"
+    infer_action = torch.load(trained_network_file, map_location = dev)
     infer_action.eval()
     env = gym.make('CarRacing-v0')
     # you can set it to torch.device('cuda') in case you have a gpu
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device(dev)
     infer_action = infer_action.to(device)
 
     for episode in range(5):
