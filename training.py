@@ -19,7 +19,10 @@ def train(data_folder, trained_network_file):
     observations, actions = load_imitations(data_folder)
     observations = [torch.Tensor(observation) for observation in observations]
     actions = [torch.Tensor(action) for action in actions]
+
+    # Preprocess data
     # Augment dataset
+    #observations = utils.mask_image(observations)
     observations_aug = utils.image_augmentation(observations)
     actions_aug = actions
     # Append new augmented dataset
