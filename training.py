@@ -22,7 +22,6 @@ def train(data_folder, trained_network_file):
 
     # Preprocess data
     # Augment dataset
-    #observations = utils.mask_image(observations)
     observations_aug = utils.image_augmentation(observations)
     actions_aug = actions
     # Append new augmented dataset
