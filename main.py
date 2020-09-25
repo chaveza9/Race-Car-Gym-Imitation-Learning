@@ -28,6 +28,9 @@ def evaluate():
         observation = env.reset()
         reward_per_episode = 0
         for t in range(500):
+            if t == 0:
+                # Accelerate car to start simulation
+                observation, reward, done, info = env.step([0, 0.6, 0])
             env.render()
             obs = torch.Tensor(np.ascontiguousarray(observation[None])).to(device)
             sensors = utils.extract_sensor_values(obs, 64)
