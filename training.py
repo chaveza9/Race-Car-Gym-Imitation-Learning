@@ -19,7 +19,13 @@ def train(data_folder, trained_network_file):
     observations, actions = load_imitations(data_folder)
     observations = [torch.Tensor(observation) for observation in observations]
     actions = [torch.Tensor(action) for action in actions]
-
+    # Augment dataset
+    observations_aug = utils.image_augmentation(observations)
+    actions_aug = actions
+    # Append new augmented dataset
+    observations = observations_aug + observations
+    actions = actions + actions_aug
+    # Generate batches
     batches = [batch for batch in zip(observations,
                                       infer_action.actions_to_classes(actions))]
 
@@ -82,7 +88,7 @@ def cross_entropy_loss(batch_out, batch_gt):
     _, labels = batch_gt.max(dim=1)
     # Compute loss function
     out = loss(batch_out, labels)
-    #print(out)
+    # print(out)
     return out
     """
     # _, batch_gt = batch_gt.max(dim=1)
@@ -94,8 +100,8 @@ def cross_entropy_loss(batch_out, batch_gt):
     return loss
     """
 
-def binary_cross_entropy_loss(batch_out, batch_in):
 
+def binary_cross_entropy_loss(batch_out, batch_in):
     criterion = nn.BCEWithLogitsLoss()
     loss = criterion(batch_out, batch_in)
     return loss

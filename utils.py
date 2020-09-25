@@ -1,6 +1,10 @@
 import torchvision.transforms.functional as functional
 import torchvision.transforms as transforms
 import torch
+import numpy as np
+import PIL
+import imgaug as ia
+from imgaug import augmenters as iaa
 
 
 def extract_sensor_values(observation, batch_size):
@@ -41,7 +45,7 @@ def preprocess_image(frames):
         reshape = transforms.Compose([
             transforms.ToPILImage(),
             # transforms.CenterCrop((122, 122)),
-            transforms.Grayscale(),
+            transforms.Grayscale(num_output_channels=1),
             transforms.ToTensor(),
             transforms.Normalize([0.4161, ], [0.1688, ]),
         ])(x.to(cpu).permute(2, 0, 1))
@@ -49,4 +53,41 @@ def preprocess_image(frames):
     # result = torch.reshape(torch.cat(result, dim=0), (-1, 96, 96, 1)).to(device)
     return result
 
+
+class ImgAugTransform:
+    def __init__(self):
+        self.aug = iaa.Sequential([
+            #iaa.Reshape((224, 224)),
+            iaa.Sometimes(0.25, iaa.GaussianBlur(sigma=(0, 3.0))),
+            iaa.Fliplr(0.5),
+            iaa.Affine(rotate=(-20, 20), mode='symmetric'),
+            iaa.Sometimes(0.25,
+                          iaa.OneOf([iaa.Dropout(p=(0, 0.1)),
+                                     iaa.CoarseDropout(0.1, size_percent=0.5)])),
+            iaa.AddToHueAndSaturation(value=(-10, 10), per_channel=True)
+        ])
+
+    def __call__(self, img):
+        img = np.array(img)
+        return self.aug.augment_image(img)
+
+def image_augmentation(frames):
+    result = []
+
+    image_transform = transforms.Compose([
+        ImgAugTransform(),
+        lambda x: PIL.Image.fromarray(x),
+        transforms.ColorJitter(hue=.05, saturation=.05),
+        transforms.Resize((96, 96)),
+        transforms.RandomRotation(20),
+        transforms.RandomVerticalFlip(),
+        transforms.ToTensor(),
+        transforms.Normalize([0.4161, ], [0.1688, ]),
+    ])
+
+    for x in frames:
+        reshape = image_transform(x.detach().numpy().astype(np.uint8))
+        result.append(reshape.permute(1, 2, 0))
+
+    return result
 
