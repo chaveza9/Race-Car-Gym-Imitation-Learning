@@ -19,7 +19,7 @@ def train(data_folder, trained_network_file):
     observations, actions = load_imitations(data_folder)
     observations = [torch.Tensor(observation) for observation in observations]
     actions = [torch.Tensor(action) for action in actions]
-
+    """
     # Preprocess data
     # Augment dataset
     observations_aug = utils.image_augmentation(observations)
@@ -27,6 +27,7 @@ def train(data_folder, trained_network_file):
     # Append new augmented dataset
     observations = observations_aug + observations
     actions = actions + actions_aug
+    """
     # Generate batches
     batches = [batch for batch in zip(observations,
                                       infer_action.actions_to_classes(actions))]

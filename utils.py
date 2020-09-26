@@ -70,25 +70,26 @@ def mask_image(frame):
 
     new_frame = np.copy(frame.cpu())
 
-    # Paint black over the sum of rewards metadata
-    new_frame[:, 85:, :15] = [0.0, 0.0, 0.0]
-
     # Black bar
     new_frame = replace_color(new_frame, [000., 000., 000.], [120.0, 120.0, 120.0])
 
     # Road
-    road_mask = [102.0, 102.0, 102.0]
+    #road_mask = [102.0, 102.0, 102.0]
+    road_mask = [240., 240., 240.]
     new_frame = replace_color(new_frame, [102., 102., 102.], road_mask)
     new_frame = replace_color(new_frame, [105., 105., 105.], road_mask)
     new_frame = replace_color(new_frame, [107., 107., 107.], road_mask)
     # Grass
-    grass_mask = [102., 229., 102.]
+    #grass_mask = [102., 229., 102.]
+    grass_mask = [0., 0., 0.]
     new_frame = replace_color(new_frame, [102., 229., 102.], grass_mask)
     new_frame = replace_color(new_frame, [102., 204., 102.], grass_mask)
     # Curbs
     new_frame = replace_color(new_frame, [255., 000., 000.], road_mask)
     new_frame = replace_color(new_frame, [255., 255., 255.], road_mask)
 
+    # Paint black over the sum of rewards metadata
+    new_frame[82:, :, :] = [0.0, 0.0, 0.0]
     # Float RGB represenattion
     #new_frame /= 255.
 
