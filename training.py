@@ -58,13 +58,6 @@ def train(data_folder, trained_network_file):
                 loss.backward()
                 optimizer.step()
                 total_loss += loss
-
-                # Accuracy
-                scores_predicted = torch.round(torch.sigmoid(batch_in)).detach().numpy()
-                _, y_predicted = scores_predicted.max(dim=1)
-                _, y_truth = batch_gt.max(dim=1)
-                acc_train = accuracy_score(y_truth, y_predicted)
-
                 batch_in = []
                 batch_gt = []
 
@@ -77,8 +70,8 @@ def train(data_folder, trained_network_file):
             torch.save(infer_action, trained_network_file)
             print('saved_model')
         loss_hist.append(total_loss)
-        acc_hist.append(acc_train)
-        utils.plot_history(acc_hist, loss_hist, nr_epochs)
+        #acc_hist.append(0)
+    utils.plot_history(acc_hist, loss_hist, nr_epochs)
 
 def cross_entropy_loss(batch_out, batch_gt):
     """
