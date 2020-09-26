@@ -10,8 +10,8 @@ from imitations import record_imitations
 
 directory = "./"  ######## change that! ########
 
-trained_network_file = os.path.join(directory, 'data/train_test.t7')
-imitations_folder = os.path.join(directory, 'data/teacher4')
+trained_network_file = os.path.join(directory, 'data/train_sensor.t7')
+imitations_folder = os.path.join(directory, 'data/teacher3')
 
 
 def evaluate():
@@ -86,11 +86,11 @@ def calculate_score_for_leaderboard():
 
 if __name__ == "__main__":
     if len(sys.argv) == 1 or sys.argv[1] == "train":
-        train = train(imitations_folder, trained_network_file)
-        test = test(imitations_folder, trained_network_file)
-        utils.plot_accuracy(test, train, 100)
+        train(imitations_folder, trained_network_file)
     elif sys.argv[1] == "teach":
         record_imitations(imitations_folder)
+    elif sys.argv[1] == "validate":
+        test(imitations_folder, trained_network_file)
     elif sys.argv[1] == "test":
         evaluate()
     elif sys.argv[1] == "score":

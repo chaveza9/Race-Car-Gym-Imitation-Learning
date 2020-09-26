@@ -52,6 +52,46 @@ def plot_accuracy(test, train, epochs):
     ax2.set_title('Loss Over ' + str(epochs) + ' Epochs')
     plt.savefig('History.png')
     plt.show()
+def plot_history(accuracy, loss, epochs):
+    """
+    Description
+    ----------
+    Generates plot accuracy and loss history for training and validation
+    Parameters
+    ----------
+        :param train: tuple
+        tuple containing (loss_train, acc_train) history
+        :param test: tuple
+        tuple containing (loss_test, acc_test) history
+        :param epochs : int
+        Integer describing number of epochs for which the model was ran trhough.
+
+    """
+    # Define plots
+    plt.figure(figsize=(18, 5), dpi=80, facecolor='w', edgecolor='k')
+    # plt.rcParams['figure.figsize'] = [15, 5]
+    ax1 = plt.subplot(1, 2, 1)
+    ax2 = plt.subplot(1, 2, 2)
+
+    # Plot Accuracy
+    ax1.plot(accuracy, label='Training Accuracy')
+    ax1.set_xlabel('Epoch')
+    ax1.set_ylabel('Accuracy')
+    # ax1.set_ylim([0.8, 1])
+    ax1.legend(loc='lower right')
+    ax1.grid(True)
+    ax1.set_title('Accuracy Over ' + str(epochs) + ' Epochs')
+
+    # Plot Loss
+    ax2.plot(loss, label='Training Loss')
+    ax2.set_xlabel('Epoch')
+    ax2.set_ylabel('Loss')
+    # ax2.set_ylim([0, 3])
+    ax2.legend(loc='upper right')
+    ax2.grid(True)
+    ax2.set_title('Loss Over ' + str(epochs) + ' Epochs')
+    plt.savefig('History.png')
+    plt.show()
 
 
 def extract_sensor_values(observation, batch_size):
@@ -96,7 +136,7 @@ def preprocess_image(frames):
         transforms.Normalize([0.4161, ], [0.1688, ]),
     ])
     for x in frames:
-        x = mask_image(x)
+        # x = mask_image(x)
         reshaped = transformation(x.to(cpu).permute(2, 0, 1))
         result.append(reshaped.permute(1, 2, 0))
     # result = torch.reshape(torch.cat(result, dim=0), (-1, 96, 96, 1)).to(device)

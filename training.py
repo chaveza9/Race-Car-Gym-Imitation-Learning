@@ -22,12 +22,13 @@ def train(data_folder, trained_network_file):
     actions = [torch.Tensor(action) for action in actions]
     # Preprocess data
     # Augment dataset
+    """
     observations_aug = utils.image_augmentation(observations)
     actions_aug = actions
     # Append new augmented dataset
     observations = observations_aug + observations
     actions = actions + actions_aug
-
+    """
     # Generate batches
     batches = [batch for batch in zip(observations,
                                       infer_action.actions_to_classes(actions))]
@@ -85,63 +86,55 @@ def train(data_folder, trained_network_file):
             prev_loss = loss_train
             torch.save(infer_action, trained_network_file)
             print('saved_model')
-    return loss_train_hist, acc_train_hist
-
+    utils.plot_history(acc_train_hist, loss_train_hist, nr_epochs)
 
 def test(data_folder, trained_network_file):
     """
     Function for training the network.
     """
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    infer_action = ClassificationNetwork().to(device)
+    infer_action = torch.load(trained_network_file, map_location = device)
     observations, actions = load_imitations(data_folder)
     observations = [torch.Tensor(observation) for observation in observations]
     actions = [torch.Tensor(action) for action in actions]
-
     # Generate batches
     batches = [batch for batch in zip(observations,
                                       infer_action.actions_to_classes(actions))]
 
-    nr_epochs = 100
-    batch_size = 64
     number_of_classes = infer_action.num_classes  # needs to be changed
-    loss_test_hist = []
-    acc_test_hist = []
+    loss_train_hist = []
+    acc_train_hist = []
 
-    for epoch in range(nr_epochs):
-        random.shuffle(batches)
-        # Test
-        random.shuffle(batches)
+    loss_train = 0
+    batch_in = []
+    batch_gt = []
+    random.shuffle(batches)
+    # Train
+    for batch_idx, batch in enumerate(batches[0:500]):
+        batch_in.append(batch[0].to(device))
+        batch_gt.append(batch[1].to(device))
+        batch_in = torch.reshape(torch.cat(batch_in, dim=0), (-1, 96, 96, 3))
+        sensor = utils.extract_sensor_values(batch_in, 1)
+        batch_in = utils.preprocess_image(batch_in)
+        batch_in = torch.reshape(torch.cat(batch_in, dim=0), (-1, 96, 96, 1))
+        batch_gt = torch.reshape(torch.cat(batch_gt, dim=0),
+                                 (-1, number_of_classes))
 
-        loss_test = 0
+        batch_out = infer_action(batch_in, sensor)
+        loss = cross_entropy_loss(batch_out, batch_gt)
+        # Accuracy
+        scores_predicted = F.softmax(batch_out, dim=1)
+        _, y_predicted = scores_predicted.max(dim=1)
+        _, y_truth = batch_gt.max(dim=1)
+        acc = accuracy_score(y_truth, y_predicted)
         batch_in = []
         batch_gt = []
+        loss_train_hist.append(loss)
+        acc_train_hist.append(acc)
+    print("Loss Mean is: %.6f" %(torch.tensor(loss_train_hist).mean()))
+    print("Accuracy Mean is: %.6f" %(torch.tensor(acc_train_hist).mean()))
+    return loss_train_hist, acc_train_hist
 
-        for batch_idx, batch in enumerate(batches):
-            batch_in.append(batch[0].to(device))
-            batch_gt.append(batch[1].to(device))
-            with torch.no_grad():
-                if (batch_idx + 1) % batch_size == 0 or batch_idx == len(batches) - 1:
-                    batch_in = torch.reshape(torch.cat(batch_in, dim=0), (-1, 96, 96, 3))
-                    sensor = utils.extract_sensor_values(batch_in, batch_size)
-                    batch_in = utils.preprocess_image(batch_in)
-                    batch_in = torch.reshape(torch.cat(batch_in, dim=0), (-1, 96, 96, 1))
-                    batch_gt = torch.reshape(torch.cat(batch_gt, dim=0),
-                                             (-1, number_of_classes))
-
-                    batch_out = infer_action(batch_in, sensor)
-                    loss = cross_entropy_loss(batch_out, batch_gt)
-                    loss_test += loss
-                    # Accuracy
-                    scores_predicted = F.softmax(batch_out, dim=1)
-                    _, y_predicted = scores_predicted.max(dim=1)
-                    _, y_truth = batch_gt.max(dim=1)
-                    acc_test = accuracy_score(y_truth, y_predicted)
-                    batch_in = []
-                    batch_gt = []
-                loss_test_hist.append(loss_test)
-                acc_test_hist.append(acc_test)
-    return loss_test_hist, acc_test_hist
 
 
 def cross_entropy_loss(batch_out, batch_gt):
