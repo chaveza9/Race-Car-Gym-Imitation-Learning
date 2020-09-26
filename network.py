@@ -76,13 +76,13 @@ class ClassificationNetwork(nn.Module):
         speed, abs_sensors, steering, gyroscope = sensor_data
         # Define sequential forwarding model
         out = self.layer1(observation.permute(0, 3, 1, 2))
-        out = self.dropout(out)
+        #out = self.dropout(out)
         out = self.layer2(out)
         out = self.layer3(out)
         # out = torch.flatten(out)
         # out = out.reshape(out.size(0), -1)
         out = out.reshape(-1, 8 * 22 * 22)
-        out = self.dropout(out)
+        #out = self.dropout(out)
         out = torch.cat((out, speed, abs_sensors, steering, gyroscope), 1)
         out = self.fc1(out)
         out = self.fc2(out)
