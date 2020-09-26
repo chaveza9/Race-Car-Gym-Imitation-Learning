@@ -22,13 +22,13 @@ def train(data_folder, trained_network_file):
     actions = [torch.Tensor(action) for action in actions]
     # Preprocess data
     # Augment dataset
-    """
+
     observations_aug = utils.image_augmentation(observations)
     actions_aug = actions
     # Append new augmented dataset
     observations = observations_aug + observations
     actions = actions + actions_aug
-    """
+
     # Generate batches
     batches = [batch for batch in zip(observations,
                                       infer_action.actions_to_classes(actions))]
