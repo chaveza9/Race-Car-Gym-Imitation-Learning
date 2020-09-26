@@ -80,11 +80,13 @@ class ClassificationNetwork(nn.Module):
         out = self.layer1(observation.permute(0, 3, 1, 2).to(device)).to(device)
         out = self.dropout(out).to(device)
         out = self.layer2(out).to(device)
+        out = self.dropout(out).to(device)
         out = self.layer3(out).to(device)
         out = out.reshape(-1, 8 * 22 * 22)
         out = self.dropout(out).to(device)
         out = torch.cat((out, speed, abs_sensors, steering, gyroscope), 1)
         out = self.fc1(out).to(device)
+        out = self.dropout(out).to(device)
         out = self.fc2(out).to(device)
         out = self.fc3(out).to(device)
 
