@@ -37,6 +37,7 @@ def train(data_folder, trained_network_file):
     number_of_classes = infer_action.num_classes  # needs to be changed
     start_time = time.time()
     prev_loss = 100000
+    loss_hist= []
 
     for epoch in range(nr_epochs):
         random.shuffle(batches)
@@ -71,6 +72,7 @@ def train(data_folder, trained_network_file):
         time_left = (1.0 * time_per_epoch) * (nr_epochs - 1 - epoch)
         print("Epoch %5d\t[Train]\tloss: %.6f \tETA: +%fs" % (
             epoch + 1, total_loss, time_left))
+        loss_hist.append(total_loss)
         if total_loss < prev_loss:
             prev_loss = total_loss
             torch.save(infer_action, trained_network_file)

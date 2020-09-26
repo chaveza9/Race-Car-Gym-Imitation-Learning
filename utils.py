@@ -3,8 +3,10 @@ import torchvision.transforms as transforms
 import torch
 import numpy as np
 import PIL
-#import imgaug as ia
-#from imgaug import augmenters as iaa
+
+
+# import imgaug as ia
+# from imgaug import augmenters as iaa
 
 
 def extract_sensor_values(observation, batch_size):
@@ -62,36 +64,39 @@ def replace_color(image, old_color, new_color):
     image[mask] = new_color
     return image
 
+
 def mask_image(frame):
     """ Preprocess the images (states) of the expert dataset before feeding them to agent """
-    if type(frame)== list:
+    if type(frame) == list:
         # Reshape list
         frame = torch.reshape(torch.cat(frame, dim=0), (-1, 96, 96, 3))
 
     new_frame = np.copy(frame.cpu())
 
+    # Paint black over the sum of rewards metadata
+    new_frame[82:, :, :] = [0.0, 0.0, 0.0]
+
     # Black bar
     new_frame = replace_color(new_frame, [000., 000., 000.], [120.0, 120.0, 120.0])
 
     # Road
-    #road_mask = [102.0, 102.0, 102.0]
-    road_mask = [240., 240., 240.]
+    road_mask = [102.0, 102.0, 102.0]
+    # road_mask = [240., 240., 240.]
     new_frame = replace_color(new_frame, [102., 102., 102.], road_mask)
     new_frame = replace_color(new_frame, [105., 105., 105.], road_mask)
     new_frame = replace_color(new_frame, [107., 107., 107.], road_mask)
     # Grass
-    #grass_mask = [102., 229., 102.]
-    grass_mask = [0., 0., 0.]
+    grass_mask = [102., 229., 102.]
+    # grass_mask = [0., 0., 0.]
     new_frame = replace_color(new_frame, [102., 229., 102.], grass_mask)
     new_frame = replace_color(new_frame, [102., 204., 102.], grass_mask)
     # Curbs
     new_frame = replace_color(new_frame, [255., 000., 000.], road_mask)
     new_frame = replace_color(new_frame, [255., 255., 255.], road_mask)
 
-    # Paint black over the sum of rewards metadata
-    new_frame[82:, :, :] = [0.0, 0.0, 0.0]
+
     # Float RGB represenattion
-    #new_frame /= 255.
+    # new_frame /= 255.
 
     return torch.tensor(new_frame)
 
@@ -100,10 +105,10 @@ def image_augmentation(frames):
     result = []
 
     image_transform = transforms.Compose([
-        #ImgAugTransform(),
+        # ImgAugTransform(),
         lambda x: PIL.Image.fromarray(x),
         transforms.ColorJitter(hue=.05, saturation=.05),
-        transforms.Resize((96, 96)),
+        # transforms.Resize((96, 96)),
         transforms.RandomRotation(20),
         transforms.RandomVerticalFlip(),
         transforms.ToTensor(),
@@ -115,4 +120,3 @@ def image_augmentation(frames):
         result.append(reshape.permute(1, 2, 0))
 
     return result
-
