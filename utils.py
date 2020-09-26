@@ -136,7 +136,7 @@ def preprocess_image(frames):
         transforms.Normalize([0.4161, ], [0.1688, ]),
     ])
     for x in frames:
-        # x = mask_image(x)
+        x = mask_image(x)
         reshaped = transformation(x.to(cpu).permute(2, 0, 1))
         result.append(reshaped.permute(1, 2, 0))
     # result = torch.reshape(torch.cat(result, dim=0), (-1, 96, 96, 1)).to(device)
@@ -178,10 +178,6 @@ def mask_image(frame):
     # Curbs
     new_frame = replace_color(new_frame, [255., 000., 000.], road_mask)
     new_frame = replace_color(new_frame, [255., 255., 255.], road_mask)
-
-
-    # Float RGB represenattion
-    # new_frame /= 255.
 
     return torch.tensor(new_frame)
 

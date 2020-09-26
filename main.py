@@ -5,7 +5,7 @@ import torch
 import gym
 import utils
 
-from training import train, test
+from training import train
 from imitations import record_imitations
 
 directory = "./"  ######## change that! ########
@@ -33,11 +33,8 @@ def evaluate():
                 # Accelerate car to start simulation
                 observation, reward, done, info = env.step([0, 0.6, 0])
             env.render()
-            obs = torch.Tensor(np.ascontiguousarray(observation[None])).to(device)
-            sensors = utils.extract_sensor_values(obs, 64)
-            obs = utils.preprocess_image(obs)
-            obs = torch.reshape(torch.cat(obs, dim=0), (-1, 96, 96, 1)).to(device)
-            action_scores = infer_action(obs, sensors)
+            action_scores = infer_action(torch.Tensor(
+                np.ascontiguousarray(observation[None])).to(device))
             steer, gas, brake = infer_action.scores_to_action(action_scores)
             observation, reward, done, info = env.step([steer, gas, brake])
             reward_per_episode += reward
@@ -89,8 +86,6 @@ if __name__ == "__main__":
         train(imitations_folder, trained_network_file)
     elif sys.argv[1] == "teach":
         record_imitations(imitations_folder)
-    elif sys.argv[1] == "validate":
-        test(imitations_folder, trained_network_file)
     elif sys.argv[1] == "test":
         evaluate()
     elif sys.argv[1] == "score":

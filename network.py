@@ -4,6 +4,7 @@ from torch import Tensor
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import utils
 
 class ClassificationNetwork(nn.Module):
 
@@ -63,7 +64,7 @@ class ClassificationNetwork(nn.Module):
         )
         self.softmax = nn.Softmax(dim=1)
 
-    def forward(self, observation, sensor_data):
+    def forward(self, observation):
         """
         1.1 e)
         The forward pass of the network. Returns the prediction for the given
@@ -73,20 +74,23 @@ class ClassificationNetwork(nn.Module):
         return         torch.Tensor of size (batch_size, number_of_classes)
         """
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        
+
+        sensor_data = utils.extract_sensor_values(observation, 64)
+        observation = utils.preprocess_image(observation)
+        observation = torch.reshape(torch.cat(observation, dim=0), (-1, 96, 96, 1))
         # Unpack tuple data
         speed, abs_sensors, steering, gyroscope = sensor_data
         # Define sequential forwarding model
         out = self.layer1(observation.permute(0, 3, 1, 2).to(device)).to(device)
-        #out = self.dropout(out).to(device)
+        out = self.dropout(out).to(device)
         out = self.layer2(out).to(device)
-        #out = self.dropout(out).to(device)
+        out = self.dropout(out).to(device)
         out = self.layer3(out).to(device)
         out = out.reshape(-1, 8 * 22 * 22)
-        #out = self.dropout(out).to(device)
+        out = self.dropout(out).to(device)
         out = torch.cat((out, speed, abs_sensors, steering, gyroscope), 1)
         out = self.fc1(out).to(device)
-        #out = self.dropout(out).to(device)
+        out = self.dropout(out).to(device)
         out = self.fc2(out).to(device)
         out = self.fc3(out).to(device)
 

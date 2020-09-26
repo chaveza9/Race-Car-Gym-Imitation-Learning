@@ -54,15 +54,10 @@ def train(data_folder, trained_network_file):
 
             if (batch_idx + 1) % batch_size == 0 or batch_idx == len(batches) - 1:
                 batch_in = torch.reshape(torch.cat(batch_in, dim=0), (-1, 96, 96, 3))
-                sensor = utils.extract_sensor_values(batch_in, batch_size)
-                batch_in = utils.preprocess_image(batch_in)
-                batch_in = torch.reshape(torch.cat(batch_in, dim=0), (-1, 96, 96, 1))
                 batch_gt = torch.reshape(torch.cat(batch_gt, dim=0),
                                          (-1, number_of_classes))
-
-                batch_out = infer_action(batch_in, sensor)
+                batch_out = infer_action(batch_in)
                 loss = cross_entropy_loss(batch_out, batch_gt)
-
                 # Loss
                 optimizer.zero_grad()
                 loss.backward()
@@ -88,54 +83,6 @@ def train(data_folder, trained_network_file):
             print('saved_model')
     utils.plot_history(acc_train_hist, loss_train_hist, nr_epochs)
 
-def test(data_folder, trained_network_file):
-    """
-    Function for training the network.
-    """
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    infer_action = torch.load(trained_network_file, map_location = device)
-    observations, actions = load_imitations(data_folder)
-    observations = [torch.Tensor(observation) for observation in observations]
-    actions = [torch.Tensor(action) for action in actions]
-    # Generate batches
-    batches = [batch for batch in zip(observations,
-                                      infer_action.actions_to_classes(actions))]
-
-    number_of_classes = infer_action.num_classes  # needs to be changed
-    loss_train_hist = []
-    acc_train_hist = []
-
-    loss_train = 0
-    batch_in = []
-    batch_gt = []
-    random.shuffle(batches)
-    # Train
-    for batch_idx, batch in enumerate(batches[0:500]):
-        batch_in.append(batch[0].to(device))
-        batch_gt.append(batch[1].to(device))
-        batch_in = torch.reshape(torch.cat(batch_in, dim=0), (-1, 96, 96, 3))
-        sensor = utils.extract_sensor_values(batch_in, 1)
-        batch_in = utils.preprocess_image(batch_in)
-        batch_in = torch.reshape(torch.cat(batch_in, dim=0), (-1, 96, 96, 1))
-        batch_gt = torch.reshape(torch.cat(batch_gt, dim=0),
-                                 (-1, number_of_classes))
-
-        batch_out = infer_action(batch_in, sensor)
-        loss = cross_entropy_loss(batch_out, batch_gt)
-        # Accuracy
-        scores_predicted = F.softmax(batch_out, dim=1)
-        _, y_predicted = scores_predicted.max(dim=1)
-        _, y_truth = batch_gt.max(dim=1)
-        acc = accuracy_score(y_truth, y_predicted)
-        batch_in = []
-        batch_gt = []
-        loss_train_hist.append(loss)
-        acc_train_hist.append(acc)
-    print("Loss Mean is: %.6f" %(torch.tensor(loss_train_hist).mean()))
-    print("Accuracy Mean is: %.6f" %(torch.tensor(acc_train_hist).mean()))
-    return loss_train_hist, acc_train_hist
-
-
 
 def cross_entropy_loss(batch_out, batch_gt):
     """
@@ -145,23 +92,16 @@ def cross_entropy_loss(batch_out, batch_gt):
     batch_gt:       torch.Tensor of size (batch_size, number_of_classes)
     return          float
     """
+    weights = torch.tensor([0.8, 0.8, 1, 1, 1, 1, 1, 1, 1]).to(\
+        torch.device("cuda" if torch.cuda.is_available() else "cpu"))
     # Define loss function
-    loss = torch.nn.CrossEntropyLoss()
+    loss = torch.nn.CrossEntropyLoss(weight = weights)
     # Compute labels
     _, labels = batch_gt.max(dim=1)
     # Compute loss function
     out = loss(batch_out, labels)
     # print(out)
     return out
-    """
-    # _, batch_gt = batch_gt.max(dim=1)
-    epsilon = 0.0001
-    loss = batch_gt * torch.log(batch_out + epsilon) + \
-           (1 - batch_gt) * torch.log(1 - batch_out + epsilon)
-    loss = -torch.mean(torch.sum(loss, dim=1), dim=0)
-
-    return loss
-    """
 
 
 def binary_cross_entropy_loss(batch_out, batch_in):
