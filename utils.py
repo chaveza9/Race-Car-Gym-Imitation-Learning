@@ -1,12 +1,57 @@
 import torchvision.transforms.functional as functional
 import torchvision.transforms as transforms
+import matplotlib.pyplot as plt
 import torch
 import numpy as np
 import PIL
 
 
-# import imgaug as ia
-# from imgaug import augmenters as iaa
+def plot_accuracy(loss, accuracy, epochs):
+    """
+    Description
+    ----------
+    Generates plot accuracy and loss history for training and validation
+    Parameters
+    ----------
+    results : keras.callbacks.History
+        Results from model fit.
+    epochs : int
+        Integer describing number of epochs for which the model was ran trhough.
+
+    """
+    # extract validation history from results
+    train_acc = results.history['accuracy']
+    val_acc = results.history['val_accuracy']
+    # extract loss history from results
+    train_loss = results.history['loss']
+    val_loss = results.history['val_loss']
+    # Define plots
+    plt.figure(figsize=(18, 5), dpi=80, facecolor='w', edgecolor='k')
+    # plt.rcParams['figure.figsize'] = [15, 5]
+    ax1 = plt.subplot(1, 2, 1)
+    ax2 = plt.subplot(1, 2, 2)
+
+    # Plot Accuracy
+    ax1.plot(train_acc, label='Training Accuracy')
+    ax1.plot(val_acc, label='Validation Accuracy')
+    ax1.set_xlabel('Epoch')
+    ax1.set_ylabel('Accuracy')
+    # ax1.set_ylim([0.8, 1])
+    ax1.legend(loc='lower right')
+    ax1.grid(True)
+    ax1.set_title('Accuracy Over ' + str(epochs) + ' Epochs')
+
+    # Plot Loss
+    ax2.plot(train_loss, label='Training Loss')
+    ax2.plot(val_loss, label='Validation Loss')
+    ax2.set_xlabel('Epoch')
+    ax2.set_ylabel('Accuracy')
+    # ax2.set_ylim([0, 3])
+    ax2.legend(loc='upper right')
+    ax2.grid(True)
+    ax2.set_title('Loss Over ' + str(epochs) + ' Epochs')
+    plt.savefig('History.png')
+    plt.show()
 
 
 def extract_sensor_values(observation, batch_size):
