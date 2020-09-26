@@ -6,25 +6,25 @@ import numpy as np
 import PIL
 
 
-def plot_accuracy(loss, accuracy, epochs):
+def plot_accuracy(test, train, epochs):
     """
     Description
     ----------
     Generates plot accuracy and loss history for training and validation
     Parameters
     ----------
-    results : keras.callbacks.History
-        Results from model fit.
-    epochs : int
+        :param train: tuple
+        tuple containing (loss_train, acc_train) history
+        :param test: tuple
+        tuple containing (loss_test, acc_test) history
+        :param epochs : int
         Integer describing number of epochs for which the model was ran trhough.
 
     """
-    # extract validation history from results
-    train_acc = results.history['accuracy']
-    val_acc = results.history['val_accuracy']
-    # extract loss history from results
-    train_loss = results.history['loss']
-    val_loss = results.history['val_loss']
+    # extract validation and test history from results
+    train_loss, train_acc = train
+    val_loss, val_acc = test
+
     # Define plots
     plt.figure(figsize=(18, 5), dpi=80, facecolor='w', edgecolor='k')
     # plt.rcParams['figure.figsize'] = [15, 5]

@@ -4,9 +4,8 @@ import numpy as np
 import torch
 import gym
 import utils
-import torch.nn.functional as F
 
-from training import train
+from training import train, test
 from imitations import record_imitations
 
 directory = "./"  ######## change that! ########
@@ -87,7 +86,9 @@ def calculate_score_for_leaderboard():
 
 if __name__ == "__main__":
     if len(sys.argv) == 1 or sys.argv[1] == "train":
-        train(imitations_folder, trained_network_file)
+        train = train(imitations_folder, trained_network_file)
+        test = test(imitations_folder, trained_network_file)
+        utils.plot_accuracy(test, train, 100)
     elif sys.argv[1] == "teach":
         record_imitations(imitations_folder)
     elif sys.argv[1] == "test":

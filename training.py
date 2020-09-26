@@ -10,7 +10,6 @@ from imitations import load_imitations
 from sklearn.metrics import accuracy_score
 
 
-
 def train(data_folder, trained_network_file):
     """
     Function for training the network.
@@ -40,8 +39,6 @@ def train(data_folder, trained_network_file):
     prev_loss = 100000
     loss_train_hist = []
     acc_train_hist = []
-    loss_test_hist = []
-    acc_test_hist = []
 
     for epoch in range(nr_epochs):
         random.shuffle(batches)
@@ -78,6 +75,41 @@ def train(data_folder, trained_network_file):
                 batch_in = []
                 batch_gt = []
 
+        time_per_epoch = (time.time() - start_time) / (epoch + 1)
+        time_left = (1.0 * time_per_epoch) * (nr_epochs - 1 - epoch)
+        print("Epoch %5d\t[Train]\tloss: %.6f\t accuracy: %.6f\tETA: +%fs" % (
+            epoch + 1, loss_train, acc_train, time_left))
+        loss_train_hist.append(loss_train)
+        acc_train_hist.append(acc_train)
+        if loss_train < prev_loss:
+            prev_loss = loss_train
+            torch.save(infer_action, trained_network_file)
+            print('saved_model')
+    return loss_train_hist, acc_train_hist
+
+
+def test(data_folder, trained_network_file):
+    """
+    Function for training the network.
+    """
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    infer_action = ClassificationNetwork().to(device)
+    observations, actions = load_imitations(data_folder)
+    observations = [torch.Tensor(observation) for observation in observations]
+    actions = [torch.Tensor(action) for action in actions]
+
+    # Generate batches
+    batches = [batch for batch in zip(observations,
+                                      infer_action.actions_to_classes(actions))]
+
+    nr_epochs = 100
+    batch_size = 64
+    number_of_classes = infer_action.num_classes  # needs to be changed
+    loss_test_hist = []
+    acc_test_hist = []
+
+    for epoch in range(nr_epochs):
+        random.shuffle(batches)
         # Test
         random.shuffle(batches)
 
@@ -107,23 +139,10 @@ def train(data_folder, trained_network_file):
                     acc_test = accuracy_score(y_truth, y_predicted)
                     batch_in = []
                     batch_gt = []
+                loss_test_hist.append(loss_test)
+                acc_test_hist.append(acc_test)
+    return loss_test_hist, acc_test_hist
 
-
-        time_per_epoch = (time.time() - start_time) / (epoch + 1)
-        time_left = (1.0 * time_per_epoch) * (nr_epochs - 1 - epoch)
-        print("Epoch %5d\t[Train]\tloss: %.6f\taccuracy: %.6f\tETA: +%fs" % (
-            epoch + 1, loss_train, acc_train, time_left))
-        loss_train_hist.append(loss_train)
-        acc_train_hist.append(acc_train)
-        loss_test_hist.append(loss_test)
-        acc_test_hist.append(acc_test)
-        if loss_train < prev_loss:
-            prev_loss = loss_train
-            torch.save(infer_action, trained_network_file)
-            print('saved_model')
-    plt.figure()
-    plt.plot(loss_train_hist)
-    plt.axis()
 
 def cross_entropy_loss(batch_out, batch_gt):
     """
