@@ -81,13 +81,13 @@ def mask_image(frame):
     new_frame = replace_color(new_frame, [102., 102., 102.], road_mask)
     new_frame = replace_color(new_frame, [105., 105., 105.], road_mask)
     new_frame = replace_color(new_frame, [107., 107., 107.], road_mask)
-    # Curbs
-    new_frame = replace_color(new_frame, [255., 000., 000.], road_mask)
-    new_frame = replace_color(new_frame, [255., 255., 255.], road_mask)
     # Grass
     grass_mask = [102., 229., 102.]
     new_frame = replace_color(new_frame, [102., 229., 102.], grass_mask)
     new_frame = replace_color(new_frame, [102., 204., 102.], grass_mask)
+    # Curbs
+    new_frame = replace_color(new_frame, [255., 000., 000.], road_mask)
+    new_frame = replace_color(new_frame, [255., 255., 255.], road_mask)
 
     # Float RGB represenattion
     #new_frame /= 255.
