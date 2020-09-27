@@ -186,10 +186,8 @@ def image_augmentation(frames):
     result = []
 
     image_transform = transforms.Compose([
-        # ImgAugTransform(),
         lambda x: PIL.Image.fromarray(x),
         transforms.ColorJitter(hue=.05, saturation=.05),
-        # transforms.Resize((96, 96)),
         transforms.RandomRotation(20),
         transforms.RandomVerticalFlip(),
         transforms.ToTensor(),
