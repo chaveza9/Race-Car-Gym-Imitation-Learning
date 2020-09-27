@@ -67,7 +67,7 @@ def train(data_folder, trained_network_file):
                 scores_predicted = F.softmax(batch_out, dim=1)
                 _, y_predicted = scores_predicted.max(dim=1)
                 _, y_truth = batch_gt.max(dim=1)
-                acc_train = accuracy_score(y_truth, y_predicted)
+                acc_train = accuracy_score(y_truth.to("cpu"), y_predicted.to("cpu"))
                 batch_in = []
                 batch_gt = []
 
@@ -92,7 +92,7 @@ def cross_entropy_loss(batch_out, batch_gt):
     batch_gt:       torch.Tensor of size (batch_size, number_of_classes)
     return          float
     """
-    weights = torch.tensor([0.8, 0.8, 1, 1, 1, 1, 1, 1, 1]).to(\
+    weights = torch.tensor([0.6, 0.8, 1, 1, 1, 1, 1, 1, 1]).to(\
         torch.device("cuda" if torch.cuda.is_available() else "cpu"))
     # Define loss function
     loss = torch.nn.CrossEntropyLoss(weight = weights)

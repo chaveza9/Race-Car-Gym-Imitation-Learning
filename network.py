@@ -137,7 +137,7 @@ class ClassificationNetwork(nn.Module):
         return          (float, float, float)
         """
         # Compute maximum score value
-        scores = F.softmax(scores, dim=1)
+        scores = F.softmax(scores, dim=1).to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
         _, predicted = torch.max(scores.data, 1)
         return self.actions_classes[predicted]
 
