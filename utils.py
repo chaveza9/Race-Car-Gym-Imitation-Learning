@@ -183,6 +183,11 @@ def mask_image(frame):
 
 
 def image_augmentation(frames):
+    """
+    Computes a new set of data by applying color jittering, and random rotations and flips
+    :param frames: list of torch.tensors of size [96,96,3]
+    :return: list of torch.tensors of size [96,96,3] with modified data
+    """
     result = []
 
     image_transform = transforms.Compose([
